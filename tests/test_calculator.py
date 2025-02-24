@@ -1,32 +1,23 @@
 import pytest
-from calculator.calculator import Calculator
-from faker import Faker
+from commands.command_manager import CommandManager
+from commands.basic_commands import AddCommand, SubtractCommand, MultiplyCommand, DivideCommand
+from commands.menu_command import MenuCommand
 
-fake = Faker()
-
-# Pytest fixture to generate random test data
 @pytest.fixture
-def random_numbers():
-    return fake.random_int(min=1, max=100), fake.random_int(min=1, max=100)
+def setup_commands():
+    manager = CommandManager()
+    manager.register("add", AddCommand())
+    manager.register("subtract", SubtractCommand())
+    manager.register("multiply", MultiplyCommand())
+    manager.register("divide", DivideCommand())
+    manager.register("menu", MenuCommand(manager))
+    return manager
 
-def test_addition(random_numbers):
-    a, b = random_numbers
-    assert Calculator.add(a, b) == a + b
+def test_menu_command(setup_commands, capsys):
+    setup_commands.execute("menu")
+    captured = capsys.readouterr()
+    assert "Available Commands:" in captured.out
 
-def test_subtraction(random_numbers):
-    a, b = random_numbers
-    assert Calculator.subtract(a, b) == a - b
-
-def test_multiplication(random_numbers):
-    a, b = random_numbers
-    assert Calculator.multiply(a, b) == a * b
-
-def test_division(random_numbers):
-    a, b = random_numbers
-    if b == 0:
-        pytest.skip("Skipping division by zero case")
-    assert Calculator.divide(a, b) == a / b
-
-def test_division_by_zero():
-    with pytest.raises(ZeroDivisionError):
-        Calculator.divide(10, 0)
+@pytest.mark.parametrize("command", ["add", "subtract", "multiply", "divide", "menu"])
+def test_registered_commands(setup_commands, command):
+    assert command in setup_commands.commands
